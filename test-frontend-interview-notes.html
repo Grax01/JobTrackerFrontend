@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Interview & Notes Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Frontend Interview Experience & Notes Test</h1>
+    
+    <div class="test-section">
+        <h2>📋 Test Instructions</h2>
+        <p>This test will help you verify that the frontend changes are working correctly with the updated backend.</p>
+        <ol>
+                            <li>Make sure your backend server is running on <code>http://localhost:8081</code></li>
+            <li>Make sure your frontend React app is running</li>
+            <li>Run the database migration first</li>
+            <li>Use the test buttons below to verify functionality</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Backend Migration</h2>
+        <p>First, run the database migration in your Supabase SQL Editor:</p>
+        <pre>-- Execute the contents of tracker-ext-backend/db/update_interview_rounds_migration.sql</pre>
+        <button class="test-button" onclick="testBackendConnection()">Test Backend Connection</button>
+        <div id="backend-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 Interview Experience Tests</h2>
+        <p>Test the updated interview experience functionality:</p>
+        <button class="test-button" onclick="testInterviewExperience()">Test Interview Experience API</button>
+        <button class="test-button" onclick="testGetJobPosts()">Get Job Posts</button>
+        <div id="interview-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 Notes Tests</h2>
+        <p>Test the new notes functionality:</p>
+        <button class="test-button" onclick="testNotesAPI()">Test Notes API</button>
+        <button class="test-button" onclick="testGetNotes()">Get Notes</button>
+        <div id="notes-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎨 Frontend Verification</h2>
+        <p>Manual verification steps for the frontend:</p>
+        <ol>
+            <li>Navigate to a job details page in your React app</li>
+            <li>Check that the interview form now has a "Round Type" text input instead of a "Round Number" dropdown</li>
+            <li>Try adding an interview experience with a custom round type (e.g., "DSA", "System Design")</li>
+            <li>Verify that the interview experience displays the round type instead of "Round X"</li>
+            <li>Check that there's a new "Notes" section with an "Add Note" button</li>
+            <li>Try adding a note with a title and content</li>
+            <li>Verify that notes are displayed in an expandable format</li>
+            <li>Test the delete functionality for notes</li>
+        </ol>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8081';
+        let currentJobId = null;
+
+        async function testBackendConnection() {
+            const statusDiv = document.getElementById('backend-status');
+            try {
+                const response = await fetch(`${BASE_URL}/job_posts`);
+                if (response.ok) {
+                    statusDiv.innerHTML = '<p class="success">✅ Backend connection successful!</p>';
+                } else {
+                    statusDiv.innerHTML = '<p class="error">❌ Backend connection failed</p>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="error">❌ Backend connection error: ${error.message}</p>`;
+            }
+        }
+
+        async function testGetJobPosts() {
+            const resultsDiv = document.getElementById('interview-results');
+            try {
+                const response = await fetch(`${BASE_URL}/job_posts`);
+                const jobs = await response.json();
+                
+                if (jobs.length > 0) {
+                    currentJobId = jobs[0].id;
+                    resultsDiv.innerHTML = `
+                        <p class="success">✅ Found ${jobs.length} job posts</p>
+                        <p class="info">Using job ID: ${currentJobId}</p>
+                        <p class="info">Job title: ${jobs[0].title}</p>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = '<p class="error">❌ No job posts found. Please create a job post first.</p>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<p class="error">❌ Error fetching job posts: ${error.message}</p>`;
+            }
+        }
+
+        async function testInterviewExperience() {
+            if (!currentJobId) {
+                document.getElementById('interview-results').innerHTML = '<p class="error">❌ Please get job posts first</p>';
+                return;
+            }
+
+            const resultsDiv = document.getElementById('interview-results');
+            try {
+                const interviewData = {
+                    round_type: 'DSA',
+                    experience_summary: 'Solved 2 medium problems. Questions on arrays and strings.'
+                };
+
+                const response = await fetch(`${BASE_URL}/job_posts/${currentJobId}/interview`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(interviewData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    resultsDiv.innerHTML = `
+                        <p class="success">✅ Interview experience added successfully!</p>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultsDiv.innerHTML = `<p class="error">❌ Failed to add interview experience: ${error}</p>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<p class="error">❌ Error adding interview experience: ${error.message}</p>`;
+            }
+        }
+
+        async function testNotesAPI() {
+            if (!currentJobId) {
+                document.getElementById('notes-results').innerHTML = '<p class="error">❌ Please get job posts first</p>';
+                return;
+            }
+
+            const resultsDiv = document.getElementById('notes-results');
+            try {
+                const noteData = {
+                    title: 'Test Note',
+                    content: 'This is a test note for the new notes functionality.'
+                };
+
+                const response = await fetch(`${BASE_URL}/job_posts/${currentJobId}/notes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(noteData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    resultsDiv.innerHTML = `
+                        <p class="success">✅ Note added successfully!</p>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultsDiv.innerHTML = `<p class="error">❌ Failed to add note: ${error}</p>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<p class="error">❌ Error adding note: ${error.message}</p>`;
+            }
+        }
+
+        async function testGetNotes() {
+            if (!currentJobId) {
+                document.getElementById('notes-results').innerHTML = '<p class="error">❌ Please get job posts first</p>';
+                return;
+            }
+
+            const resultsDiv = document.getElementById('notes-results');
+            try {
+                const response = await fetch(`${BASE_URL}/job_posts/${currentJobId}/notes`);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    resultsDiv.innerHTML = `
+                        <p class="success">✅ Notes retrieved successfully!</p>
+                        <p class="info">Found ${result.notes ? result.notes.length : 0} notes</p>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    `;
+                } else {
+                    const error = await response.text();
+                    resultsDiv.innerHTML = `<p class="error">❌ Failed to get notes: ${error}</p>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<p class="error">❌ Error getting notes: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html> 

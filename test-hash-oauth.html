@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hash OAuth Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .param-display {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Hash OAuth Test</h1>
+        
+        <div class="test-section info">
+            <h3>Current URL Analysis</h3>
+            <div id="urlAnalysis" class="param-display">Loading...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test OAuth Hash Parameters</h3>
+            <button onclick="testHashOAuth()">Simulate OAuth Hash Callback</button>
+            <button onclick="testQueryOAuth()">Simulate OAuth Query Callback</button>
+            <button onclick="testCombinedOAuth()">Simulate Combined OAuth</button>
+            <button onclick="clearUrl()">Clear URL</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Parameter Parsing Test</h3>
+            <div id="parsingResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Navigation</h3>
+            <button onclick="window.location.href='/'">Go to Main App</button>
+            <button onclick="window.location.href='/auth/callback' + window.location.hash">Go to OAuth Callback</button>
+            <button onclick="window.location.reload()">Reload Page</button>
+        </div>
+    </div>
+
+    <script>
+        // Function to analyze current URL
+        function analyzeUrl() {
+            const currentUrl = window.location.href;
+            const pathname = window.location.pathname;
+            const search = window.location.search;
+            const hash = window.location.hash;
+            
+            // Parse query parameters
+            const urlParams = new URLSearchParams(search);
+            const queryParams = {};
+            for (const [key, value] of urlParams.entries()) {
+                queryParams[key] = value;
+            }
+            
+            // Parse hash parameters
+            let hashParams = {};
+            if (hash && hash.includes('=')) {
+                const hashString = hash.substring(1);
+                const hashSearchParams = new URLSearchParams(hashString);
+                for (const [key, value] of hashSearchParams.entries()) {
+                    hashParams[key] = value;
+                }
+            }
+            
+            // Combine parameters
+            const allParams = { ...queryParams, ...hashParams };
+            
+            const analysis = {
+                currentUrl,
+                pathname,
+                search,
+                hash,
+                queryParams,
+                hashParams,
+                allParams,
+                hasOAuthParams: !!(allParams.access_token || allParams.code || allParams.error)
+            };
+            
+            return analysis;
+        }
+
+        // Function to display URL analysis
+        function displayUrlAnalysis() {
+            const analysis = analyzeUrl();
+            const display = document.getElementById('urlAnalysis');
+            
+            display.textContent = JSON.stringify(analysis, null, 2);
+            
+            return analysis;
+        }
+
+        // Function to test hash OAuth parameters
+        function testHashOAuth() {
+            const mockParams = {
+                access_token: 'mock_access_token_' + Date.now(),
+                refresh_token: 'mock_refresh_token_' + Date.now(),
+                expires_in: '3600',
+                token_type: 'bearer'
+            };
+            
+            const hashString = new URLSearchParams(mockParams).toString();
+            const newUrl = window.location.origin + '/auth/callback#' + hashString;
+            
+            console.log('🔄 Redirecting to hash OAuth:', newUrl);
+            window.location.href = newUrl;
+        }
+
+        // Function to test query OAuth parameters
+        function testQueryOAuth() {
+            const mockParams = {
+                access_token: 'mock_access_token_' + Date.now(),
+                refresh_token: 'mock_refresh_token_' + Date.now(),
+                expires_in: '3600',
+                token_type: 'bearer'
+            };
+            
+            const queryString = new URLSearchParams(mockParams).toString();
+            const newUrl = window.location.origin + '/auth/callback?' + queryString;
+            
+            console.log('🔄 Redirecting to query OAuth:', newUrl);
+            window.location.href = newUrl;
+        }
+
+        // Function to test combined OAuth parameters
+        function testCombinedOAuth() {
+            const queryParams = {
+                state: 'mock_state_' + Date.now()
+            };
+            
+            const hashParams = {
+                access_token: 'mock_access_token_' + Date.now(),
+                refresh_token: 'mock_refresh_token_' + Date.now(),
+                expires_in: '3600',
+                token_type: 'bearer'
+            };
+            
+            const queryString = new URLSearchParams(queryParams).toString();
+            const hashString = new URLSearchParams(hashParams).toString();
+            const newUrl = window.location.origin + '/auth/callback?' + queryString + '#' + hashString;
+            
+            console.log('🔄 Redirecting to combined OAuth:', newUrl);
+            window.location.href = newUrl;
+        }
+
+        // Function to clear URL
+        function clearUrl() {
+            window.location.href = window.location.origin + '/auth/callback';
+        }
+
+        // Function to test parameter parsing (same logic as OAuth callback)
+        function testParameterParsing() {
+            const analysis = analyzeUrl();
+            const resultsDiv = document.getElementById('parsingResults');
+            
+            // Simulate the OAuth callback parsing logic
+            let urlParams = new URLSearchParams(window.location.search);
+            let hashParams = new URLSearchParams();
+            
+            if (window.location.hash && window.location.hash.includes('=')) {
+                const hashString = window.location.hash.substring(1);
+                hashParams = new URLSearchParams(hashString);
+            }
+            
+            const allParams = new URLSearchParams(urlParams.toString());
+            for (const [key, value] of hashParams.entries()) {
+                allParams.set(key, value);
+            }
+            
+            const parsedParams = {};
+            for (const [key, value] of allParams.entries()) {
+                parsedParams[key] = value;
+            }
+            
+            const oauthParams = ['access_token', 'refresh_token', 'code', 'error', 'state'];
+            const foundOAuthParams = oauthParams.filter(param => parsedParams[param]);
+            
+            const result = {
+                originalAnalysis: analysis,
+                parsedParams,
+                foundOAuthParams,
+                hasOAuthData: foundOAuthParams.length > 0
+            };
+            
+            resultsDiv.innerHTML = `
+                <div class="test-section ${result.hasOAuthData ? 'success' : 'error'}">
+                    <h4>Parsing Results:</h4>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                </div>
+            `;
+            
+            return result;
+        }
+
+        // Initialize
+        displayUrlAnalysis();
+        testParameterParsing();
+        
+        // Update on URL changes
+        window.addEventListener('popstate', () => {
+            displayUrlAnalysis();
+            testParameterParsing();
+        });
+        
+        // Auto-update every 2 seconds
+        setInterval(() => {
+            displayUrlAnalysis();
+            testParameterParsing();
+        }, 2000);
+    </script>
+</body>
+</html> 

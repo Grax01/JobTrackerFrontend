@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Auth Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .cookie-display {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍪 Cookie-Based Authentication Test</h1>
+        
+        <div class="test-section info">
+            <h3>Current Cookies</h3>
+            <div id="cookieDisplay" class="cookie-display">Loading...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Cookie Functions</h3>
+            <button onclick="testSetCookie()">Set Test Cookie</button>
+            <button onclick="testGetCookie()">Get Auth Cookie</button>
+            <button onclick="testClearCookie()">Clear Auth Cookie</button>
+            <button onclick="testIsAuthenticated()">Check Authentication</button>
+            <button onclick="testGetUser()">Get User Data</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Results</h3>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Manual Cookie Operations</h3>
+            <input type="text" id="cookieName" placeholder="Cookie name" value="job_tracker_auth" style="width: 200px; padding: 5px;">
+            <input type="text" id="cookieValue" placeholder="Cookie value (JSON)" style="width: 300px; padding: 5px;">
+            <button onclick="setManualCookie()">Set Cookie</button>
+            <button onclick="getManualCookie()">Get Cookie</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Navigation</h3>
+            <button onclick="window.location.href='/'">Go to Main App</button>
+            <button onclick="window.location.href='/simple-auth'">Go to Simple Auth</button>
+            <button onclick="window.location.reload()">Reload Page</button>
+        </div>
+    </div>
+
+    <script>
+        // Cookie utility functions (copied from cookieAuth.js)
+        const COOKIE_NAME = 'job_tracker_auth';
+        const COOKIE_EXPIRY_DAYS = 30;
+
+        function setAuthCookie(authData) {
+            try {
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + COOKIE_EXPIRY_DAYS);
+                
+                const cookieValue = JSON.stringify({
+                    ...authData,
+                    expires: expiryDate.toISOString()
+                });
+                
+                document.cookie = `${COOKIE_NAME}=${encodeURIComponent(cookieValue)}; expires=${expiryDate.toUTCString()}; path=/; SameSite=Lax`;
+                
+                console.log('🍪 Auth cookie set successfully');
+                return true;
+            } catch (error) {
+                console.error('❌ Error setting auth cookie:', error);
+                return false;
+            }
+        }
+
+        function getAuthCookie() {
+            try {
+                const cookies = document.cookie.split(';');
+                const authCookie = cookies.find(cookie => 
+                    cookie.trim().startsWith(`${COOKIE_NAME}=`)
+                );
+                
+                if (!authCookie) {
+                    console.log('🍪 No auth cookie found');
+                    return null;
+                }
+                
+                const cookieValue = decodeURIComponent(authCookie.split('=')[1]);
+                const authData = JSON.parse(cookieValue);
+                
+                // Check if cookie has expired
+                if (authData.expires && new Date(authData.expires) < new Date()) {
+                    console.log('🍪 Auth cookie has expired');
+                    clearAuthCookie();
+                    return null;
+                }
+                
+                console.log('🍪 Auth cookie retrieved successfully');
+                return authData;
+            } catch (error) {
+                console.error('❌ Error reading auth cookie:', error);
+                clearAuthCookie();
+                return null;
+            }
+        }
+
+        function clearAuthCookie() {
+            try {
+                document.cookie = `${COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                console.log('🍪 Auth cookie cleared');
+                return true;
+            } catch (error) {
+                console.error('❌ Error clearing auth cookie:', error);
+                return false;
+            }
+        }
+
+        function isAuthenticated() {
+            const authData = getAuthCookie();
+            return authData !== null && authData.user_id && authData.email;
+        }
+
+        function getUserFromCookie() {
+            const authData = getAuthCookie();
+            if (!authData) return null;
+            
+            return {
+                id: authData.user_id,
+                email: authData.email,
+                full_name: authData.full_name,
+                auth_user_id: authData.auth_user_id
+            };
+        }
+
+        // Test functions
+        function testSetCookie() {
+            const testData = {
+                user_id: `test_${Date.now()}`,
+                email: 'test@example.com',
+                full_name: 'Test User',
+                auth_user_id: `test_${Date.now()}`,
+                provider: 'test'
+            };
+            
+            const result = setAuthCookie(testData);
+            addResult('Set Cookie Test', result ? 'SUCCESS' : 'FAILED', testData);
+            updateCookieDisplay();
+        }
+
+        function testGetCookie() {
+            const cookie = getAuthCookie();
+            addResult('Get Cookie Test', cookie ? 'SUCCESS' : 'FAILED', cookie);
+        }
+
+        function testClearCookie() {
+            const result = clearAuthCookie();
+            addResult('Clear Cookie Test', result ? 'SUCCESS' : 'FAILED');
+            updateCookieDisplay();
+        }
+
+        function testIsAuthenticated() {
+            const result = isAuthenticated();
+            addResult('Authentication Check', result ? 'AUTHENTICATED' : 'NOT AUTHENTICATED');
+        }
+
+        function testGetUser() {
+            const user = getUserFromCookie();
+            addResult('Get User Test', user ? 'SUCCESS' : 'FAILED', user);
+        }
+
+        function setManualCookie() {
+            const name = document.getElementById('cookieName').value;
+            const value = document.getElementById('cookieValue').value;
+            
+            try {
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + 30);
+                document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expiryDate.toUTCString()}; path=/; SameSite=Lax`;
+                addResult('Manual Set Cookie', 'SUCCESS', { name, value });
+                updateCookieDisplay();
+            } catch (error) {
+                addResult('Manual Set Cookie', 'FAILED', error.message);
+            }
+        }
+
+        function getManualCookie() {
+            const name = document.getElementById('cookieName').value;
+            const cookies = document.cookie.split(';');
+            const cookie = cookies.find(c => c.trim().startsWith(`${name}=`));
+            
+            if (cookie) {
+                const value = decodeURIComponent(cookie.split('=')[1]);
+                addResult('Manual Get Cookie', 'SUCCESS', { name, value });
+            } else {
+                addResult('Manual Get Cookie', 'FAILED', 'Cookie not found');
+            }
+        }
+
+        function addResult(testName, status, data = null) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-section ${status === 'SUCCESS' || status === 'AUTHENTICATED' ? 'success' : 'error'}`;
+            
+            let content = `<strong>${testName}:</strong> ${status}`;
+            if (data) {
+                content += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            
+            resultDiv.innerHTML = content;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function updateCookieDisplay() {
+            const display = document.getElementById('cookieDisplay');
+            display.textContent = document.cookie || 'No cookies found';
+        }
+
+        // Initialize
+        updateCookieDisplay();
+        
+        // Test on load
+        setTimeout(() => {
+            testGetCookie();
+            testIsAuthenticated();
+        }, 100);
+    </script>
+</body>
+</html> 

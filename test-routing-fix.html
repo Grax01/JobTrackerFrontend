@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Routing Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Routing Fix Test</h1>
+        
+        <div class="test-section info">
+            <h3>Current Status</h3>
+            <p>This page tests if the OAuth callback routing fix is working.</p>
+            <p><strong>Expected:</strong> OAuth callback should be rendered when on `/auth/callback` route</p>
+        </div>
+
+        <div class="test-section">
+            <h3>Test OAuth Callback Route</h3>
+            <button onclick="testOAuthCallback()">Go to OAuth Callback</button>
+            <button onclick="testOAuthCallbackWithParams()">Go to OAuth Callback with Params</button>
+            <button onclick="window.location.href='/'">Go to Main App</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Results</h3>
+            <div id="testResults">
+                <p>Click the buttons above to test the routing.</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Manual Testing</h3>
+            <p>You can also manually test by:</p>
+            <ol>
+                <li>Going to <code>http://localhost:8082/auth/callback</code></li>
+                <li>Checking if the OAuth callback component renders</li>
+                <li>Looking for the log: <code>🔄 OAuthCallback component RENDERED</code></li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function testOAuthCallback() {
+            console.log('🧪 Testing OAuth callback route...')
+            window.location.href = '/auth/callback'
+        }
+
+        function testOAuthCallbackWithParams() {
+            console.log('🧪 Testing OAuth callback route with params...')
+            const mockParams = {
+                access_token: 'test_token_' + Date.now(),
+                refresh_token: 'test_refresh_' + Date.now(),
+                expires_in: '3600',
+                token_type: 'bearer'
+            }
+            
+            const hashString = new URLSearchParams(mockParams).toString()
+            window.location.href = '/auth/callback#' + hashString
+        }
+
+        // Check if we're on the callback route
+        if (window.location.pathname === '/auth/callback') {
+            document.getElementById('testResults').innerHTML = `
+                <div class="test-section success">
+                    <h4>✅ Success!</h4>
+                    <p>You are on the OAuth callback route.</p>
+                    <p>Check the console for: <code>🔄 OAuthCallback component RENDERED</code></p>
+                    <p>Current URL: <code>${window.location.href}</code></p>
+                </div>
+            `
+        } else {
+            document.getElementById('testResults').innerHTML = `
+                <div class="test-section info">
+                    <h4>ℹ️ Ready to Test</h4>
+                    <p>Click the buttons above to test the OAuth callback routing.</p>
+                    <p>Current URL: <code>${window.location.href}</code></p>
+                </div>
+            `
+        }
+    </script>
+</body>
+</html> 
