@@ -1,7 +1,20 @@
 // API configuration utility
 const getApiBaseUrl = (): string => {
-  // Use environment variable if available, otherwise fallback to production URL
-  return process.env.REACT_APP_API_URL || 'https://jobtrackerbackend-production-5284.up.railway.app';
+  // Check if we're in development mode
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  // Use environment variable if available
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // Fallback based on environment
+  if (isDevelopment) {
+    return 'http://localhost:8081';
+  }
+  
+  // Production fallback
+  return 'https://jobtrackerbackend-production-5284.up.railway.app';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

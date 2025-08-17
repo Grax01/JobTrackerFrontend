@@ -573,7 +573,7 @@ const JobDetails = ({ auth_user_id }: { auth_user_id: string }) => {
                 flexWrap: 'wrap', 
                 gap: '15px'
               }}>
-                {jobData.job_post.tech_stack.map((tech, index) => (
+                {(jobData.job_post.tech_stack || []).map((tech, index) => (
                   <span
                     key={index}
                     style={{
@@ -1330,7 +1330,7 @@ const JobDetails = ({ auth_user_id }: { auth_user_id: string }) => {
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {jobData.interview_experiences.map((experience) => (
+              {(jobData.interview_experiences || []).map((experience) => (
                 <div
                   key={experience.id}
                   style={{
@@ -1711,7 +1711,7 @@ const JobDetails = ({ auth_user_id }: { auth_user_id: string }) => {
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {notes.map((note) => (
+              {(notes || []).map((note) => (
                 <div
                   key={note.id}
                   style={{
