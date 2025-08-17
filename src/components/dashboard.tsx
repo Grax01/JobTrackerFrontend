@@ -192,7 +192,7 @@ const Dashboard = ({ auth_user_id, onLogout }: { auth_user_id: string, onLogout:
     }
   }, [debouncedCompanyFilter, debouncedLocationFilter, statusFilter])
 
-  // Fetch job summary
+  // Fetch job summary with retry logic
   const [jobSummary, setJobSummary] = useState({
     total: 0,
     in_progress: 0,
@@ -200,33 +200,59 @@ const Dashboard = ({ auth_user_id, onLogout }: { auth_user_id: string, onLogout:
     offered: 0,
     rejected: 0
   })
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [summaryError, setSummaryError] = useState("")
+  const summaryRetryCountRef = useRef(0)
+  const maxRetries = 3
 
-  useEffect(() => {
+  const fetchJobSummary = useCallback(async () => {
     console.log('🔍 Dashboard: Fetching job summary for auth_user_id:', auth_user_id)
+    setSummaryLoading(true)
+    setSummaryError("")
+    
     const summaryUrl = `${buildApiUrl(API_ENDPOINTS.DASHBOARD_SUMMARY)}?auth_user_id=${auth_user_id}`
     console.log('📡 Dashboard: Making summary API call to:', summaryUrl)
     
-    axios
-      .get(summaryUrl)
-      .then((res) => {
-        console.log('✅ Dashboard: Summary API response received:', {
-          status: res.status,
-          success: res.data.success,
-          summary: res.data.summary
-        })
-        if (res.data.success) {
-          setJobSummary(res.data.summary)
-        }
+    try {
+      const res = await axios.get(summaryUrl)
+      console.log('✅ Dashboard: Summary API response received:', {
+        status: res.status,
+        success: res.data.success,
+        summary: res.data.summary
       })
-      .catch((err) => {
-        console.error("❌ Dashboard: Error fetching job summary:", err)
-        console.error("❌ Dashboard: Summary error details:", {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status
-        })
+      
+      if (res.data.success) {
+        setJobSummary(res.data.summary)
+        summaryRetryCountRef.current = 0 // Reset retry count on success
+      } else {
+        throw new Error('API returned success: false')
+      }
+    } catch (err) {
+      console.error("❌ Dashboard: Error fetching job summary:", err)
+      console.error("❌ Dashboard: Summary error details:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
       })
+      
+      setSummaryError("Failed to load job summary")
+      
+      // Retry logic
+      if (summaryRetryCountRef.current < maxRetries) {
+        summaryRetryCountRef.current++
+        console.log(`🔄 Dashboard: Retrying job summary (attempt ${summaryRetryCountRef.current}/${maxRetries})`)
+        setTimeout(() => {
+          fetchJobSummary()
+        }, 2000 * summaryRetryCountRef.current) // Exponential backoff
+      }
+    } finally {
+      setSummaryLoading(false)
+    }
   }, [auth_user_id])
+
+  useEffect(() => {
+    fetchJobSummary()
+  }, [fetchJobSummary])
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -299,10 +325,47 @@ const Dashboard = ({ auth_user_id, onLogout }: { auth_user_id: string, onLogout:
   if (error) return (
     <div style={{ 
       textAlign: 'center', 
-      padding: '20px', 
-      color: '#f44336' 
+      padding: '40px 20px', 
+      color: '#f44336',
+      backgroundColor: '#F8FAFC',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '20px'
     }}>
-      {error}
+      <div style={{ fontSize: '18px', fontWeight: '600' }}>
+        {error}
+      </div>
+      <button 
+        onClick={() => {
+          setError("")
+          // Trigger a re-fetch by updating a dependency
+          setCurrentPage(currentPage)
+        }}
+        style={{
+          padding: '12px 24px',
+          backgroundColor: '#3B82F6',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontSize: '14px',
+          fontWeight: '600',
+          boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-1px)'
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.3)'
+        }}
+      >
+        🔄 Retry
+      </button>
     </div>
   )
 
@@ -332,93 +395,120 @@ const Dashboard = ({ auth_user_id, onLogout }: { auth_user_id: string, onLogout:
           flexShrink: 0,
           alignItems: 'center'
         }}>
-          {jobSummary.total > 0 && (
-            <button style={{
-              padding: '12px 20px',
-              background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-              color: '#374151',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              cursor: downloadingCSV ? 'not-allowed' : 'pointer',
-              fontSize: '13px',
-              fontWeight: '600',
-              boxShadow: '0 2px 8px rgba(148, 163, 184, 0.2)',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              opacity: downloadingCSV ? 0.5 : 1,
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-            onMouseEnter={(e) => {
-              if (!downloadingCSV) {
-                e.currentTarget.style.transform = 'translateY(-1px)'
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(148, 163, 184, 0.3)'
-                e.currentTarget.style.background = 'linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%)'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!downloadingCSV) {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(148, 163, 184, 0.2)'
-                e.currentTarget.style.background = 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
-              }
-            }}
-            disabled={downloadingCSV}
-            onClick={() => {
-              if (!downloadingCSV) {
-                setDownloadingCSV(true)
-                const url = `${buildApiUrl(API_ENDPOINTS.DASHBOARD_CSV)}?auth_user_id=${auth_user_id}`
-                const link = document.createElement('a')
-                link.href = url
-                link.download = 'job_posts.csv'
-                document.body.appendChild(link)
-                link.click()
-                document.body.removeChild(link)
-                setTimeout(() => setDownloadingCSV(false), 1000)
-              }
-            }}
-            >
-              {downloadingCSV ? (
+          <button style={{
+            padding: '12px 20px',
+            background: summaryLoading || summaryError ? 'linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%)' : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+            color: summaryLoading || summaryError ? '#9ca3af' : '#374151',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px',
+            cursor: (downloadingCSV || summaryLoading || summaryError || jobSummary.total === 0) ? 'not-allowed' : 'pointer',
+            fontSize: '13px',
+            fontWeight: '600',
+            boxShadow: '0 2px 8px rgba(148, 163, 184, 0.2)',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            opacity: (downloadingCSV || summaryLoading || summaryError || jobSummary.total === 0) ? 0.5 : 1,
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+          onMouseEnter={(e) => {
+            if (!downloadingCSV && !summaryLoading && !summaryError && jobSummary.total > 0) {
+              e.currentTarget.style.transform = 'translateY(-1px)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(148, 163, 184, 0.3)'
+              e.currentTarget.style.background = 'linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%)'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!downloadingCSV && !summaryLoading && !summaryError && jobSummary.total > 0) {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(148, 163, 184, 0.2)'
+              e.currentTarget.style.background = 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
+            }
+          }}
+          disabled={downloadingCSV || summaryLoading || !!summaryError || jobSummary.total === 0}
+          onClick={() => {
+            if (!downloadingCSV && !summaryLoading && !summaryError && jobSummary.total > 0) {
+              setDownloadingCSV(true)
+              const url = `${buildApiUrl(API_ENDPOINTS.DASHBOARD_CSV)}?auth_user_id=${auth_user_id}`
+              const link = document.createElement('a')
+              link.href = url
+              link.download = 'job_posts.csv'
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+              setTimeout(() => setDownloadingCSV(false), 1000)
+            } else if (summaryError) {
+              // Retry fetching summary if there was an error
+              fetchJobSummary()
+            }
+          }}
+          title={summaryError ? "Click to retry loading data" : jobSummary.total === 0 ? "No jobs to export" : "Export jobs to CSV"}
+          >
+            {downloadingCSV ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
                 <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  <div style={{
-                    width: '12px',
-                    height: '12px',
-                    border: '1.5px solid #cbd5e1',
-                    borderTop: '1.5px solid #64748b',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }}></div>
-                  <span>Downloading...</span>
-                </div>
-              ) : (
+                  width: '12px',
+                  height: '12px',
+                  border: '1.5px solid #cbd5e1',
+                  borderTop: '1.5px solid #64748b',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+                <span>Downloading...</span>
+              </div>
+            ) : summaryLoading ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
                 <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
+                  width: '12px',
+                  height: '12px',
+                  border: '1.5px solid #cbd5e1',
+                  borderTop: '1.5px solid #64748b',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+                <span>Loading...</span>
+              </div>
+            ) : summaryError ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span style={{ fontSize: '14px' }}>⚠️</span>
+                <span>Retry</span>
+              </div>
+            ) : (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span style={{ fontSize: '14px' }}>📊</span>
+                <span>Export CSV</span>
+                <span style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  color: '#64748b',
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  border: '1px solid #e2e8f0'
                 }}>
-                  <span style={{ fontSize: '14px' }}>📊</span>
-                  <span>Export CSV</span>
-                  <span style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                    color: '#64748b',
-                    padding: '1px 6px',
-                    borderRadius: '10px',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    border: '1px solid #e2e8f0'
-                  }}>
-                    {jobSummary.total}
-                  </span>
-                </div>
-              )}
-            </button>
-          )}
+                  {jobSummary.total}
+                </span>
+              </div>
+            )}
+          </button>
           
           <button 
             onClick={() => setIsAddJobModalOpen(true)}
