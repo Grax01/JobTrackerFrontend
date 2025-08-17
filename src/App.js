@@ -9,6 +9,9 @@ import TestAuth from './components/TestAuth.tsx'
 import GoogleAuth from './components/GoogleAuth.tsx'
 import SimpleAuth from './components/SimpleAuth.tsx'
 import OAuthDebug from './components/OAuthDebug.tsx'
+import PrivacyPolicy from './components/PrivacyPolicy.tsx'
+import TermsOfService from './components/TermsOfService.tsx'
+import Support from './components/Support.tsx'
 import { getAuthCookie, clearAuthCookie, getUserFromCookie, setAuthCookie } from './utils/cookieAuth'
 import axios from 'axios'
 import { buildApiUrl, API_ENDPOINTS } from './utils/api.ts'
@@ -400,7 +403,14 @@ function AppContent() {
   // Render based on authentication state
   if (!user) {
     log('INFO', '🔐 No user found, showing login page')
-    return <GoogleAuth onAuthSuccess={handleAuthSuccess} onProfileComplete={handleProfileComplete} />
+    return (
+      <Routes>
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="*" element={<GoogleAuth onAuthSuccess={handleAuthSuccess} onProfileComplete={handleProfileComplete} />} />
+      </Routes>
+    )
   }
 
   if (user && !profileComplete) {
@@ -418,6 +428,9 @@ function AppContent() {
       <Route path="/test-auth" element={<TestAuth />} />
       <Route path="/simple-auth" element={<SimpleAuth onAuthSuccess={handleAuthSuccess} onProfileComplete={handleProfileComplete} />} />
       <Route path="/oauth-debug" element={<OAuthDebug />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-of-service" element={<TermsOfService />} />
+      <Route path="/support" element={<Support />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
