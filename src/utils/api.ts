@@ -10,11 +10,11 @@ const getApiBaseUrl = (): string => {
   
   // Fallback based on environment
   if (isDevelopment) {
-    return 'https://jobtrackerbackend-production-5284.up.railway.app';
+    return 'https://job-tracker-backend-303229553466.us-central1.run.app';
   }
   
   // Production fallback
-  return 'https://jobtrackerbackend-production-5284.up.railway.app';
+  return 'https://job-tracker-backend-303229553466.us-central1.run.app';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
