@@ -229,7 +229,7 @@ const JobDetails = ({ auth_user_id }: { auth_user_id: string }) => {
       const params = new URLSearchParams({
         auth_user_id: auth_user_id
       })
-      const res = await axios.get(`http://localhost:8081/user_jobs/job/${userJobId}?${params.toString()}`)
+      const res = await axios.get(`https://jobtrackerbackend-production-5284.up.railway.app/user_jobs/job/${userJobId}?${params.toString()}`)
       setJobData(res.data)
     } catch (err) {
       setError("Failed to submit interview experience")

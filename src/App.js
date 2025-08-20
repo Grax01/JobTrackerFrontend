@@ -275,7 +275,7 @@ function AppContent() {
       })
       
       if (error.code === 'ERR_NETWORK') {
-        setError('Cannot connect to server. Please make sure the backend is running on port 8081.')
+        setError('Cannot connect to server. Please make sure the backend is running on port 8080.')
       } else {
         setError('An error occurred while checking your profile. Please try again.')
       }

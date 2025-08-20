@@ -10,7 +10,7 @@ const getApiBaseUrl = (): string => {
   
   // Fallback based on environment
   if (isDevelopment) {
-    return 'http://localhost:8081';
+    return 'https://jobtrackerbackend-production-5284.up.railway.app';
   }
   
   // Production fallback
